@@ -1,0 +1,66 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: analytics_db
+      POSTGRES_USER: analytics_user
+      POSTGRES_PASSWORD: analytics_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: ./backend/Website_Analysts
+    command: >
+      sh -c "python manage.py migrate &&
+             gunicorn Website_Analysts.asgi:application -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000"
+    env_file:
+      - ./backend/Website_Analysts/.env.example
+    environment:
+      DB_HOST: postgres
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "8000:8000"
+
+  celery:
+    build:
+      context: ./backend/Website_Analysts
+    command: celery -A Website_Analysts worker -l info
+    env_file:
+      - ./backend/Website_Analysts/.env.example
+    depends_on:
+      - backend
+      - redis
+      - postgres
+
+  celery-beat:
+    build:
+      context: ./backend/Website_Analysts
+    command: celery -A Website_Analysts beat -l info
+    env_file:
+      - ./backend/Website_Analysts/.env.example
+    depends_on:
+      - backend
+      - redis
+      - postgres
+
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+
+volumes:
+  postgres_data:
