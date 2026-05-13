@@ -225,13 +225,14 @@ SIMPLE_JWT = {
 }
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
-
 CORS_ALLOWED_ORIGINS = [
     "https://tracking-websites.vercel.app",
     "https://tracking-websites-qes9g2z08-imongmama45s-projects.vercel.app",
 ]
 
-CORS_ALLOW_CREDENTIALS = False
+
+
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only in development
 
 CORS_ALLOW_HEADERS = [
@@ -320,8 +321,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ─── Security (Production) ────────────────────────────────────────────────────
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://*.onrender.com",
-    "https://*.vercel.app",
+    "https://tracking-websites-qes9g2z08-imongmama45s-projects.vercel.app",
+    "https://tracking-websites.onrender.com",
 ]
 
 if not DEBUG:
