@@ -10,8 +10,8 @@ from datetime import timedelta
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-LOG_DIR = BASE_DIR / "logs"
-os.makedirs(LOG_DIR, exist_ok=True)
+# LOG_DIR = BASE_DIR / "logs"
+# os.makedirs(LOG_DIR, exist_ok=True)
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-in-production-use-env-var')
 
@@ -68,8 +68,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'common.middleware.RequestTimingMiddleware',
-    'common.middleware.APIRateLimitMiddleware',
+    # 'common.middleware.RequestTimingMiddleware',
+    # 'common.middleware.APIRateLimitMiddleware',
 ]
 
 ROOT_URLCONF = 'Website_Analysts.urls'
@@ -294,33 +294,19 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@analyticsplatform.com')
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
-    },
     'handlers': {
-        'console': {'class': 'logging.StreamHandler', 'formatter': 'verbose'},
-        'file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'analytics.log',
-            'maxBytes': 1024 * 1024 * 10,  # 10MB
-            'backupCount': 5,
-            'formatter': 'verbose',
+        'console': {
+            'class': 'logging.StreamHandler',
         },
     },
-    'loggers': {
-        'django': {'handlers': ['console'], 'level': 'WARNING'},
-        'analytics': {'handlers': ['console', 'file'], 'level': 'INFO', 'propagate': False},
-        'tracking': {'handlers': ['console', 'file'], 'level': 'INFO', 'propagate': False},
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
     },
 }
-
 # ─── Internationalization ─────────────────────────────────────────────────────
 
 LANGUAGE_CODE = 'en-us'
@@ -357,4 +343,3 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
