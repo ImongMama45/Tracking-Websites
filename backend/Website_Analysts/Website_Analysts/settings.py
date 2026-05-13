@@ -234,6 +234,7 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only in development
+CORS_ALLOW_CREDENTIALS = True  # ONLY if using cookies/session
 
 CORS_ALLOW_HEADERS = [
     'accept',
