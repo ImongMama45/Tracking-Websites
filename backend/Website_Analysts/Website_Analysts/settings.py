@@ -199,7 +199,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'Website_Analysts.wsgi.application'
-ASGI_APPLICATION = 'Website_Analysts.asgi.application'
+# ASGI_APPLICATION = 'Website_Analysts.asgi.application'
 
 # ─── Database ─────────────────────────────────────────────────────────────────
 
