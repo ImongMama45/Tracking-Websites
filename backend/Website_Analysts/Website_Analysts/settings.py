@@ -23,9 +23,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-sz-g8xwkmnq@s=+pkvt4metble2yn_q!ya*#&ls(yei5ii8omi'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '.onrender.com',
+    'localhost',
+    '127.0.0.1',
+]
 
 
 # Application definition
@@ -138,11 +142,11 @@ THIRD_PARTY_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
-    'channels',
+    # 'channels',
     'django_filters',
-    'celery',
-    'django_celery_beat',
-    'django_celery_results',
+    # 'celery',
+    # 'django_celery_beat',
+    # 'django_celery_results',
 ]
 
 LOCAL_APPS = [
@@ -224,67 +228,67 @@ else:
 
 # ─── Redis & Channels ─────────────────────────────────────────────────────────
 
-REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+# REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': REDIS_URL,
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            'SOCKET_CONNECT_TIMEOUT': 5,
-            'SOCKET_TIMEOUT': 5,
-            'RETRY_ON_TIMEOUT': True,
-            'MAX_CONNECTIONS': 1000,
-            'CONNECTION_POOL_KWARGS': {'max_connections': 100},
-        },
-        'KEY_PREFIX': 'analytics',
-        'TIMEOUT': 300,
-    }
-}
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django_redis.cache.RedisCache',
+#         'LOCATION': REDIS_URL,
+#         'OPTIONS': {
+#             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+#             'SOCKET_CONNECT_TIMEOUT': 5,
+#             'SOCKET_TIMEOUT': 5,
+#             'RETRY_ON_TIMEOUT': True,
+#             'MAX_CONNECTIONS': 1000,
+#             'CONNECTION_POOL_KWARGS': {'max_connections': 100},
+#         },
+#         'KEY_PREFIX': 'analytics',
+#         'TIMEOUT': 300,
+#     }
+# }
 
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [REDIS_URL],
-            'capacity': 1500,
-            'expiry': 10,
-        },
-    },
-}
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             'hosts': [REDIS_URL],
+#             'capacity': 1500,
+#             'expiry': 10,
+#         },
+#     },
+# }
 
-# ── Celery ────────────────────────────────────────────────────────────────────
-if DEBUG or importlib.util.find_spec('django_redis') is None:
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': 'analytics-dev-cache',
-            'TIMEOUT': 300,
-        }
-    }
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': (
-                'channels.layers.InMemoryChannelLayer'
-                if importlib.util.find_spec('channels_redis') is None
-                else 'channels_redis.core.RedisChannelLayer'
-            ),
-        }
-    }
+# # ── Celery ────────────────────────────────────────────────────────────────────
+# if DEBUG or importlib.util.find_spec('django_redis') is None:
+#     CACHES = {
+#         'default': {
+#             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+#             'LOCATION': 'analytics-dev-cache',
+#             'TIMEOUT': 300,
+#         }
+#     }
+#     CHANNEL_LAYERS = {
+#         'default': {
+#             'BACKEND': (
+#                 'channels.layers.InMemoryChannelLayer'
+#                 if importlib.util.find_spec('channels_redis') is None
+#                 else 'channels_redis.core.RedisChannelLayer'
+#             ),
+#         }
+#     }
 
-CELERY_BROKER_URL = REDIS_URL
-CELERY_RESULT_BACKEND = REDIS_URL
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'UTC'
-CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
-CELERY_TASK_ROUTES = {
-    'analytics.tasks.*': {'queue': 'analytics'},
-    'tracking.tasks.*': {'queue': 'tracking'},
-    'reports.tasks.*': {'queue': 'reports'},
-}
+# CELERY_BROKER_URL = REDIS_URL
+# CELERY_RESULT_BACKEND = REDIS_URL
+# CELERY_ACCEPT_CONTENT = ['json']
+# CELERY_TASK_SERIALIZER = 'json'
+# CELERY_RESULT_SERIALIZER = 'json'
+# CELERY_TIMEZONE = 'UTC'
+# CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+# CELERY_TASK_ROUTES = {
+#     'analytics.tasks.*': {'queue': 'analytics'},
+#     'tracking.tasks.*': {'queue': 'tracking'},
+#     'reports.tasks.*': {'queue': 'reports'},
+# }
  
 
 # ─── REST Framework ───────────────────────────────────────────────────────────
@@ -435,6 +439,11 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ─── Security (Production) ────────────────────────────────────────────────────
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.onrender.com",
+    "https://*.vercel.app",
+]
 
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
