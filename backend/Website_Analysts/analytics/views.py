@@ -98,12 +98,17 @@ class OverviewStatsView(APIView):
             return round((curr - prev) / prev * 100, 1)
 
         return Response({
-            'period': {'start': str(start), 'end': str(end)},
-            'current': current,
-            'previous': previous,
+            'current': {
+                'visitors': current['visitors'],
+                'page_views': current['page_views'],
+                'sessions': current['sessions'],
+                'bounce_rate': current['bounce_rate'],
+            },
             'changes': {
-                key: calc_change(current[key], previous[key])
-                for key in current
+                'visitors': calc_change(current['visitors'], previous['visitors']),
+                'page_views': calc_change(current['page_views'], previous['page_views']),
+                'sessions': calc_change(current['sessions'], previous['sessions']),
+                'bounce_rate': calc_change(current['bounce_rate'], previous['bounce_rate']),
             }
         })
 
