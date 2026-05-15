@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Pie, PieChart, ResponsiveContainer, Cell, Tooltip } from "recharts";
+import ChartPanel from "../ui/ChartPanel.jsx";
 import { api } from "../lib/api.js";
 import { useDashboardStore } from "../state/dashboardStore.js";
 

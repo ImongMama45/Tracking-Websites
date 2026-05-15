@@ -6,6 +6,7 @@ export const useDashboardStore = create((set, get) => ({
   selectedWebsite: null,
   overview: null,
   traffic: [],
+  lastUpdated: null,
   loading: false,
   period: "30d",
   error: "",
@@ -31,7 +32,13 @@ export const useDashboardStore = create((set, get) => ({
         api.get(`/analytics/${website.id}/overview/?period=${period}`),
         api.get(`/analytics/${website.id}/traffic/?period=${period}`)
       ]);
-      set({ overview: overview.data, traffic: traffic.data.data || [], loading: false, error: "" });
+      set({
+        overview: overview.data,
+        traffic: traffic.data.data || [],
+        lastUpdated: Date.now(),
+        loading: false,
+        error: ""
+      });
     } catch (error) {
       set({ loading: false, error: error.response?.data?.detail || "Unable to load analytics." });
       throw error;
