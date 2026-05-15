@@ -61,7 +61,7 @@ class WebsiteViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def snippet(self, request, pk=None):
         website = self.get_object()
-        base_url = os.environ.get('TRACKER_BASE_URL') or request.build_absolute_uri('/').rstrip('/')
+        base_url = os.environ.get('TRACKER_BASE_URL', 'https://tracking-websites.onrender.com')
         snippet = (
             f'<script async src="{base_url}/tracker.js" '
             f'data-site-id="{website.tracking_id}"></script>'

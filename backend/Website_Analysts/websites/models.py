@@ -171,3 +171,4 @@ class TrackingScript(models.Model):
 
     class Meta:
         db_table = 'tracking_scripts'
+ 
