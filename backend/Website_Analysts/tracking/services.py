@@ -22,10 +22,25 @@ class GeoLocationService:
         return {}
 
 
+from user_agents import parse as ua_parse
+
 class UserAgentParserService:
     @staticmethod
-    def parse(_user_agent: str) -> dict:
-        return {}
+    def parse(user_agent_string: str) -> dict:
+        if not user_agent_string:
+            return {"device_type": "unknown", "browser": "unknown", "os": "unknown"}
+        ua = ua_parse(user_agent_string)
+        if ua.is_mobile:
+            device_type = "mobile"
+        elif ua.is_tablet:
+            device_type = "tablet"
+        else:
+            device_type = "desktop"
+        return {
+            "device_type": device_type,
+            "browser": ua.browser.family or "unknown",
+            "os": ua.os.family or "unknown",
+        }
 
 
 class TrackingService:

@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { api } from "../lib/api.js";
 import { useDashboardStore } from "../state/dashboardStore.js";
+import { ComposableMap, Geographies, Geography } from "react-simple-maps";
+
 
 // ─── Event config ─────────────────────────────────────────────────────────────
 const EVENT_ICONS = {
@@ -384,8 +386,29 @@ function SourcesView({ websiteId }) {
 }
 
 // ─── BUG 7: Geography ─────────────────────────────────────────────────────────
+const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+   const NUMERIC_TO_ALPHA2 = {
+  "004":"AF","008":"AL","012":"DZ","024":"AO","032":"AR","036":"AU","040":"AT",
+  "050":"BD","056":"BE","068":"BO","076":"BR","100":"BG","116":"KH","120":"CM",
+  "124":"CA","144":"LK","152":"CL","156":"CN","170":"CO","180":"CD","188":"CR",
+  "191":"HR","192":"CU","203":"CZ","208":"DK","214":"DO","218":"EC","818":"EG",
+  "222":"SV","231":"ET","246":"FI","250":"FR","276":"DE","288":"GH","300":"GR",
+  "320":"GT","332":"HT","340":"HN","348":"HU","356":"IN","360":"ID","364":"IR",
+  "368":"IQ","372":"IE","376":"IL","380":"IT","388":"JM","392":"JP","400":"JO",
+  "404":"KE","408":"KP","410":"KR","414":"KW","418":"LA","422":"LB","426":"LS",
+  "434":"LY","440":"LT","442":"LU","454":"MW","458":"MY","484":"MX","504":"MA",
+  "508":"MZ","516":"NA","524":"NP","528":"NL","554":"NZ","558":"NI","566":"NG",
+  "578":"NO","586":"PK","591":"PA","598":"PG","600":"PY","604":"PE","608":"PH",
+  "616":"PL","620":"PT","630":"PR","634":"QA","642":"RO","643":"RU","682":"SA",
+  "686":"SN","694":"SL","706":"SO","710":"ZA","724":"ES","729":"SD","752":"SE",
+  "756":"CH","760":"SY","764":"TH","788":"TN","792":"TR","800":"UG","804":"UA",
+  "784":"AE","826":"GB","840":"US","858":"UY","862":"VE","704":"VN","887":"YE",
+  "894":"ZM","716":"ZW","pace":"PS"
+};
+
 function GeographyView({ websiteId }) {
   const [countries, setCountries] = useState([]);
+  const [tooltip, setTooltip]     = useState(null);
   const [loading, setLoading]     = useState(true);
 
   useEffect(() => {
@@ -400,6 +423,30 @@ function GeographyView({ websiteId }) {
     () => countries.reduce((s, c) => s + (c.sessions || 0), 0),
     [countries]
   );
+
+  // Build lookup: alpha-2 country_code → sessions
+  const countryMap = useMemo(() => {
+    const m = {};
+    for (const c of countries) {
+      if (c.country_code) m[c.country_code.toUpperCase()] = c.sessions || 0;
+    }
+    return m;
+  }, [countries]);
+
+  const maxSessions = useMemo(
+    () => Math.max(1, ...Object.values(countryMap)),
+    [countryMap]
+  );
+
+  const getColor = (alpha2) => {
+    const val = countryMap[alpha2] || 0;
+    if (!val) return "#e2e8f0";
+    const intensity = Math.round(50 + (val / maxSessions) * 205);
+    // interpolate from light blue to dark blue
+    const h = 217, s = 91;
+    const l = Math.round(90 - (val / maxSessions) * 55);
+    return `hsl(${h},${s}%,${l}%)`;
+  };
 
   const sorted = useMemo(
     () => [...countries].sort((a, b) => (b.sessions || 0) - (a.sessions || 0)),
@@ -435,11 +482,71 @@ function GeographyView({ websiteId }) {
         </Card>
       </div>
 
+      {/* World map */}
+      <Card className="overflow-hidden p-4">
+        <h2 className="mb-2 font-semibold">Visitor Map</h2>
+        <div className="relative">
+          <ComposableMap
+            projectionConfig={{ scale: 140 }}
+            width={800}
+            height={400}
+            style={{ width: "100%", height: "auto" }}
+          >
+            <Geographies geography={GEO_URL}>
+              {({ geographies }) =>
+                geographies.map((geo) => {
+                  const numericId = geo.id;
+                  const alpha2 = NUMERIC_TO_ALPHA2[String(numericId)] || "";
+                  const sessions = countryMap[alpha2] || 0;
+                  return (
+                    <Geography
+                      key={geo.rsmKey}
+                      geography={geo}
+                      fill={getColor(alpha2)}
+                      stroke="#fff"
+                      strokeWidth={0.5}
+                      style={{
+                        default: { outline: "none" },
+                        hover:   { outline: "none", fill: "#f59e0b", cursor: "pointer" },
+                        pressed: { outline: "none" },
+                      }}
+                      onMouseEnter={() => {
+                        const name = geo.properties.name || alpha2 || "Unknown";
+                        setTooltip({ name, sessions });
+                      }}
+                      onMouseLeave={() => setTooltip(null)}
+                    />
+                  );
+                })
+              }
+            </Geographies>
+          </ComposableMap>
+
+          {/* Tooltip */}
+          {tooltip && (
+            <div className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-lg dark:border-slate-700 dark:bg-slate-800">
+              <span className="font-semibold">{tooltip.name}</span>
+              {" — "}
+              <span>{tooltip.sessions.toLocaleString()} session{tooltip.sessions !== 1 ? "s" : ""}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Legend */}
+        <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+          <span>Fewer</span>
+          <div className="h-2 w-32 rounded-full"
+            style={{ background: "linear-gradient(to right, #e2e8f0, hsl(217,91%,35%))" }} />
+          <span>More</span>
+        </div>
+      </Card>
+
       {/* Table */}
       <Card className="overflow-hidden">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-slate-500 dark:bg-slate-800">
             <tr>
+              <th className="px-4 py-3">#</th>
               <th className="px-4 py-3">Country</th>
               <th className="px-4 py-3">Sessions</th>
               <th className="px-4 py-3">% of Total</th>
@@ -447,13 +554,14 @@ function GeographyView({ websiteId }) {
           </thead>
           <tbody>
             {loading ? (
-              <EmptyRow colSpan={3} message="Loading…" />
+              <EmptyRow colSpan={4} message="Loading…" />
             ) : sorted.length === 0 ? (
-              <EmptyRow colSpan={3} />
-            ) : sorted.map((c) => {
+              <EmptyRow colSpan={4} />
+            ) : sorted.map((c, i) => {
               const pct = total ? Math.round((c.sessions / total) * 100) : 0;
               return (
                 <tr key={c.country_code} className="border-t border-slate-100 dark:border-slate-800">
+                  <td className="px-4 py-3 text-slate-400">{i + 1}</td>
                   <td className="px-4 py-3 font-medium">{c.country_name || c.country_code}</td>
                   <td className="px-4 py-3 tabular-nums">{c.sessions.toLocaleString()}</td>
                   <td className="px-4 py-3">
