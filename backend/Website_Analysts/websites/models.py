@@ -4,6 +4,7 @@ Websites App - Models
 Multi-website management with secure tracking ID generation.
 """
 
+import os
 import uuid
 import secrets
 from django.db import models
@@ -93,7 +94,8 @@ class Website(models.Model):
 
     @property
     def embed_script(self):
-        return f'<script async src="https://tracking-websites-g4qt8910p-imongmama45s-projects.vercel.app/tracker.js" data-site-id="{self.tracking_id}"></script>'
+        base_url = os.environ.get('TRACKER_BASE_URL', 'https://tracking-websites.onrender.com')
+        return f'<script async src="{base_url}/tracker.js" data-site-id="{self.tracking_id}"></script>'
 
     @property
     def is_verified(self):
