@@ -1,62 +1,50 @@
 """
-Analytics Platform - Production Django Settings
-================================================
-Modular, scalable configuration for the analytics platform.
+Analytics Platform - Django Settings
+=====================================
 """
 
 import os
-# import importlib.util
 from datetime import timedelta
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-# LOG_DIR = BASE_DIR / "logs"
-# os.makedirs(LOG_DIR, exist_ok=True)
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-in-production-use-env-var')
 
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # ─── Application Definition ──────────────────────────────────────────────────
 
-DJANGO_APPS = [
+INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-]
-
-THIRD_PARTY_APPS = [
+    # Third-party
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
-    # 'channels',
     'django_filters',
-    # 'celery',
-    # 'django_celery_beat',
-    # 'django_celery_results',
-]
-
-LOCAL_APPS = [
+    # Local
     'accounts',
     'websites',
     'analytics',
     'tracking',
     'events',
-    'sessions_app',  # renamed to avoid conflict with django.contrib.sessions
+    'sessions_app',
     'reports',
     'notifications',
     'realtime',
     'common',
 ]
-
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 # ─── Middleware ───────────────────────────────────────────────────────────────
 
@@ -70,8 +58,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'common.middleware.RequestTimingMiddleware',
-    # 'common.middleware.APIRateLimitMiddleware',
 ]
 
 ROOT_URLCONF = 'Website_Analysts.urls'
@@ -93,16 +79,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'Website_Analysts.wsgi.application'
-# ASGI_APPLICATION = 'Website_Analysts.asgi.application'
 
 # ─── Database ─────────────────────────────────────────────────────────────────
 
 if os.environ.get('DB_ENGINE', 'sqlite').lower() != 'postgres':
-    sqlite_path = os.environ.get('SQLITE_PATH')
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': sqlite_path or BASE_DIR / 'db.sqlite3',
+            'NAME': os.environ.get('SQLITE_PATH') or BASE_DIR / 'db.sqlite3',
         }
     }
 else:
@@ -114,79 +98,13 @@ else:
             'PASSWORD': os.environ.get('DB_PASSWORD', 'analytics_password'),
             'HOST': os.environ.get('DB_HOST', 'localhost'),
             'PORT': os.environ.get('DB_PORT', '5432'),
-            'OPTIONS': {
-                'connect_timeout': 10,
-            },
+            'OPTIONS': {'connect_timeout': 10},
             'CONN_MAX_AGE': 60,
         }
     }
 
-# ─── Redis & Channels ─────────────────────────────────────────────────────────
-
-# REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
-
-# CACHES = {
-#     'default': {
-#         'BACKEND': 'django_redis.cache.RedisCache',
-#         'LOCATION': REDIS_URL,
-#         'OPTIONS': {
-#             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-#             'SOCKET_CONNECT_TIMEOUT': 5,
-#             'SOCKET_TIMEOUT': 5,
-#             'RETRY_ON_TIMEOUT': True,
-#             'MAX_CONNECTIONS': 1000,
-#             'CONNECTION_POOL_KWARGS': {'max_connections': 100},
-#         },
-#         'KEY_PREFIX': 'analytics',
-#         'TIMEOUT': 300,
-#     }
-# }
-
-# CHANNEL_LAYERS = {
-#     'default': {
-#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
-#         'CONFIG': {
-#             'hosts': [REDIS_URL],
-#             'capacity': 1500,
-#             'expiry': 10,
-#         },
-#     },
-# }
-
-# # ── Celery ────────────────────────────────────────────────────────────────────
-# if DEBUG or importlib.util.find_spec('django_redis') is None:
-#     CACHES = {
-#         'default': {
-#             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-#             'LOCATION': 'analytics-dev-cache',
-#             'TIMEOUT': 300,
-#         }
-#     }
-#     CHANNEL_LAYERS = {
-#         'default': {
-#             'BACKEND': (
-#                 'channels.layers.InMemoryChannelLayer'
-#                 if importlib.util.find_spec('channels_redis') is None
-#                 else 'channels_redis.core.RedisChannelLayer'
-#             ),
-#         }
-#     }
-
-# CELERY_BROKER_URL = REDIS_URL
-# CELERY_RESULT_BACKEND = REDIS_URL
-# CELERY_ACCEPT_CONTENT = ['json']
-# CELERY_TASK_SERIALIZER = 'json'
-# CELERY_RESULT_SERIALIZER = 'json'
-# CELERY_TIMEZONE = 'UTC'
-# CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
-# CELERY_TASK_ROUTES = {
-#     'analytics.tasks.*': {'queue': 'analytics'},
-#     'tracking.tasks.*': {'queue': 'tracking'},
-#     'reports.tasks.*': {'queue': 'reports'},
-# }
- 
-
 # ─── REST Framework ───────────────────────────────────────────────────────────
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -194,14 +112,13 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
-    "DEFAULT_PAGINATION_CLASS": "common.pagination.PageNumberPagination",
-    'PAGE_SIZE':10,
+    'DEFAULT_PAGINATION_CLASS': 'common.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ],
-    
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle',
@@ -214,7 +131,7 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
 }
 
-# ─── JWT Settings ─────────────────────────────────────────────────────────────
+# ─── JWT ─────────────────────────────────────────────────────────────────────
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
@@ -228,20 +145,14 @@ SIMPLE_JWT = {
 }
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
+
 CORS_ALLOWED_ORIGINS = os.environ.get(
     'CORS_ORIGINS',
     'http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174'
 ).split(',')
 
-CSRF_TRUSTED_ORIGINS = (
-    os.environ.get('CSRF_TRUSTED_ORIGINS', '')
-    .split(',')
-    if os.environ.get('CSRF_TRUSTED_ORIGINS')
-    else []
-)
-
-CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only in development
-CORS_ALLOW_CREDENTIALS = True  # ONLY if using cookies/session
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Allow all in development only
+CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_HEADERS = [
     'accept',
@@ -253,8 +164,15 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
-    'x-site-id',  # Tracking site identifier
+    'x-site-id',
 ]
+
+# ─── CSRF ─────────────────────────────────────────────────────────────────────
+
+CSRF_TRUSTED_ORIGINS = os.environ.get(
+    'CSRF_TRUSTED_ORIGINS',
+    'https://tracking-websites.vercel.app,https://tracking-websites.onrender.com'
+).split(',')
 
 # ─── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -276,26 +194,21 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# ─── Tracking SDK ─────────────────────────────────────────────────────────────
+# ─── Tracking & Analytics ─────────────────────────────────────────────────────
 
 TRACKER_SCRIPT_VERSION = '1.0.0'
 TRACKER_BATCH_SIZE = 50
 TRACKER_FLUSH_INTERVAL = 5000  # ms
 BOT_USER_AGENTS_FILE = BASE_DIR / 'common' / 'data' / 'bot_agents.txt'
 
-# ─── Analytics Settings ───────────────────────────────────────────────────────
-
-ANALYTICS_CACHE_TIMEOUT = 300  # 5 minutes
-REALTIME_VISITOR_TIMEOUT = 300  # 5 minutes - visitor considered inactive
+ANALYTICS_CACHE_TIMEOUT = 300       # 5 minutes
+REALTIME_VISITOR_TIMEOUT = 300      # 5 minutes
 SESSION_TIMEOUT_MINUTES = 30
 ANALYTICS_RETENTION_DAYS = 365
 
 # ─── Email ────────────────────────────────────────────────────────────────────
 
-EMAIL_BACKEND = os.environ.get(
-    'EMAIL_BACKEND',
-    'django.core.mail.backends.console.EmailBackend'
-)
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = True
@@ -304,20 +217,20 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@analyticsplatform.com')
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
+        'console': {'class': 'logging.StreamHandler'},
     },
     'root': {
         'handlers': ['console'],
         'level': 'INFO',
     },
 }
-# ─── Internationalization ─────────────────────────────────────────────────────
+
+# ─── Internationalisation ─────────────────────────────────────────────────────
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
@@ -326,12 +239,7 @@ USE_TZ = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# ─── Security (Production) ────────────────────────────────────────────────────
-
-CSRF_TRUSTED_ORIGINS = [
-    "https://tracking-websites-qes9g2z08-imongmama45s-projects.vercel.app",
-    "https://tracking-websites.onrender.com",
-]
+# ─── Security (Production only) ───────────────────────────────────────────────
 
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
@@ -342,14 +250,3 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     X_FRAME_OPTIONS = 'DENY'
-
-TIME_ZONE = 'UTC'
-
-USE_I18N = True
-
-USE_TZ = True
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/6.0/howto/static-files/
-
