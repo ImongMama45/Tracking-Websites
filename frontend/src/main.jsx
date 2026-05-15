@@ -15,6 +15,7 @@ import SettingsPage from "./pages/SettingsPage.jsx";
 import GuidePage from "./pages/GuidePage.jsx";
 import { useAuthStore } from "./state/authStore.js";
 import "./styles.css";
+import SessionsPage from "./pages/SessionPage.jsx";
 
 function Protected({ children }) {
   const access = useAuthStore((state) => state.access);
@@ -43,7 +44,6 @@ const routes = [
       { index: true, element: <DashboardPage mode="overview" /> },
       { path: "realtime", element: <DashboardPage mode="realtime" /> },
       { path: "visitors", element: <AnalyticsPage type="visitors" /> },
-      { path: "sessions", element: <AnalyticsPage type="sessions" /> },
       { path: "events", element: <AnalyticsPage type="events" /> },
       { path: "sources", element: <AnalyticsPage type="sources" /> },
       { path: "geography", element: <AnalyticsPage type="geography" /> },
@@ -51,7 +51,8 @@ const routes = [
       { path: "websites", element: <WebsiteManagement /> },
       { path: "notifications", element: <NotificationsPage /> },
       { path: "guide", element: <GuidePage /> },
-      { path: "settings", element: <SettingsPage /> }
+      { path: "settings", element: <SettingsPage /> },
+      { path: "sessions", element: <SessionsPage /> }
     ]
   }
 ];

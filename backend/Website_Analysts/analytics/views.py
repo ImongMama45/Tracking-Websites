@@ -343,3 +343,59 @@ class EventStatsView(APIView):
         )
 
         return Response({'data': list(events)})
+
+class SessionListView(APIView):
+    """GET /api/v1/analytics/{website_id}/sessions/"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, website_id):
+        website = get_website_or_404(request, website_id)
+        if not website:
+            return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        start, end = parse_date_range(request)
+        sessions = Session.objects.filter(
+            website=website,
+            started_at__date__range=(start, end),
+        ).select_related("visitor").order_by("-started_at")
+
+        total = sessions.count()
+        bounces = sessions.filter(is_bounce=True).count()
+        avg_dur = sessions.aggregate(avg=Avg('duration_seconds'))['avg'] or 0
+        avg_pages = sessions.aggregate(avg=Avg('page_count'))['avg'] or 0
+
+        # Entry pages
+        entry_pages = (
+            sessions.exclude(entry_page='')
+            .values('entry_page')
+            .annotate(count=Count('id'))
+            .order_by('-count')[:10]
+        )
+
+        # Exit pages
+        exit_pages = (
+            sessions.exclude(exit_page='')
+            .values('exit_page')
+            .annotate(count=Count('id'))
+            .order_by('-count')[:10]
+        )
+
+        # Recent sessions list (last 50)
+        recent = sessions[:50].values(
+            'id', 'started_at', 'duration_seconds',
+            'page_count', 'is_bounce', 'entry_page',
+            'exit_page', 'entry_type',
+            'visitor__country_name', 'visitor__device_type', 'visitor__browser',
+        )
+
+        return Response({
+            'summary': {
+                'total_sessions':    total,
+                'bounce_rate':       round(bounces / total * 100, 1) if total else 0,
+                'avg_duration':      round(avg_dur),
+                'avg_pages':         round(avg_pages, 2),
+            },
+            'entry_pages': list(entry_pages),
+            'exit_pages':  list(exit_pages),
+            'sessions':    list(recent),
+        })

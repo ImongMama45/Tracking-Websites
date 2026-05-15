@@ -10,6 +10,7 @@ from .views import (
     TopPagesView,
     TrafficChartView,
     TrafficSourcesView,
+    SessionListView,
 )
 
 
@@ -21,4 +22,5 @@ urlpatterns = [
     path("<uuid:website_id>/devices/", DeviceStatsView.as_view(), name="analytics-devices"),
     path("<uuid:website_id>/locations/", LocationStatsView.as_view(), name="analytics-locations"),
     path("<uuid:website_id>/events/", EventStatsView.as_view(), name="analytics-events"),
+    path('<int:website_id>/sessions/', SessionListView.as_view(), name='sessions'),
 ]

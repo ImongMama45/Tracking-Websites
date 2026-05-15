@@ -1,7 +1,7 @@
 import hashlib
 from datetime import timedelta
 from urllib.parse import urlparse
-
+import requests as http_requests
 from django.core.cache import cache
 from django.utils import timezone
 
@@ -18,8 +18,29 @@ class BotDetectionService:
 
 class GeoLocationService:
     @staticmethod
-    def lookup(_ip_address: str) -> dict:
-        return {}
+    def lookup(ip_address: str) -> dict:
+        if not ip_address or ip_address in ("127.0.0.1", "::1", "localhost"):
+            return {}
+        try:
+            resp = http_requests.get(
+                f"http://ip-api.com/json/{ip_address}",
+                params={"fields": "status,country,countryCode,regionName,city,timezone,lat,lon"},
+                timeout=2,
+            )
+            data = resp.json()
+            if data.get("status") != "success":
+                return {}
+            return {
+                "country_code": data.get("countryCode", "")[:2],
+                "country_name": data.get("country", "")[:100],
+                "region":       data.get("regionName", "")[:100],
+                "city":         data.get("city", "")[:100],
+                "timezone":     data.get("timezone", "")[:50],
+                "latitude":     data.get("lat"),
+                "longitude":    data.get("lon"),
+            }
+        except Exception:
+            return {}
 
 
 from user_agents import parse as ua_parse
@@ -63,8 +84,47 @@ class TrackingService:
                 "language": "",
             },
         )
+        geo = GeoLocationService.lookup(self.client_ip)
+        visitor, created = Visitor.objects.get_or_create(
+            website=self.website,
+            visitor_hash=visitor_hash,
+            defaults={
+                "device_type": parsed_agent.get("device_type", "unknown"),
+                "browser":     parsed_agent.get("browser", ""),
+                "os":          parsed_agent.get("os", ""),
+                "language":    "",
+                # Geography
+                "country_code": geo.get("country_code", ""),
+                "country_name": geo.get("country_name", ""),
+                "region":       geo.get("region", ""),
+                "city":         geo.get("city", ""),
+                "timezone":     geo.get("timezone", ""),
+                "latitude":     geo.get("latitude"),
+                "longitude":    geo.get("longitude"),
+            },
+        )
+
+        # Update geo + device on returning visitors if previously unknown
+        update_fields = ["visit_count", "last_seen_at"]
+        if not created:
+            if not visitor.country_code and geo.get("country_code"):
+                visitor.country_code = geo["country_code"]
+                visitor.country_name = geo.get("country_name", "")
+                visitor.region       = geo.get("region", "")
+                visitor.city         = geo.get("city", "")
+                visitor.timezone     = geo.get("timezone", "")
+                visitor.latitude     = geo.get("latitude")
+                visitor.longitude    = geo.get("longitude")
+                update_fields += ["country_code", "country_name", "region", "city", "timezone", "latitude", "longitude"]
+            if visitor.device_type in ("unknown", "") and parsed_agent.get("device_type") not in ("unknown", ""):
+                visitor.device_type = parsed_agent["device_type"]
+                visitor.browser     = parsed_agent.get("browser", "")
+                visitor.os          = parsed_agent.get("os", "")
+                update_fields += ["device_type", "browser", "os"]
+
         visitor.visit_count += 1
-        visitor.save(update_fields=["visit_count", "last_seen_at"])
+        visitor.save(update_fields=update_fields)
+
 
         now = timezone.now()
         session = (
