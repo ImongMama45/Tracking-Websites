@@ -27,9 +27,9 @@ export default function AnalyticsPage({ type }) {
   useEffect(() => {
     async function load() {
       if (!selectedWebsite) return;
-      if (type === "sessions") {
-        const { data } = await api.get(`/sessions/?website=${selectedWebsite.id}`);
-        setRows(data.results || data);
+      if (type === "visitors") {
+        const { data } = await api.get(`/analytics/${selectedWebsite.id}/traffic/?period=30d`);
+        setRows(data.data || []);
       } else if (type === "events") {
         const { data } = await api.get(`/events/?website=${selectedWebsite.id}`);
         const rawRows = data.results || data;
@@ -48,18 +48,11 @@ export default function AnalyticsPage({ type }) {
   }, [selectedWebsite?.id, type]);
 
   const chartData = rows.slice(0, 5).map((row, index) => ({
-    name: row.path                          // pages
-      || row.entry_type                    // sources
-      || row.event_name                    // events (from EventStatsView)
-      || row.country_code                  // locations (country_name may be blank)
-      || row.device_type                   // devices
-      || `Metric ${index + 1}`,
-    value: row.views
-        || row.sessions
-        || row.count
-        || row.unique_visitors
-        || 1
-  }));
+  name: row.path || row.date || row.entry_type || row.event_name
+     || row.country_code || row.device_type || `Metric ${index + 1}`,
+  value: row.views || row.visitors || row.sessions
+      || row.count || row.unique_visitors || 1
+}));
    
 
   return (

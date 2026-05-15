@@ -117,6 +117,7 @@ class TrafficChartView(APIView):
     """
     GET /api/v1/analytics/{website_id}/traffic/
     Returns time-series data for visitor/pageview charts.
+    Falls back to live Session/PageView queries when DailyAnalytics is empty.
     """
     permission_classes = [IsAuthenticated]
 
@@ -127,26 +128,64 @@ class TrafficChartView(APIView):
 
         start, end = parse_date_range(request)
 
-        daily = (
+        # Try pre-aggregated table first (fast path)
+        daily = list(
             DailyAnalytics.objects
             .filter(website=website, date__range=(start, end))
             .order_by('date')
             .values('date', 'unique_visitors', 'total_page_views', 'total_sessions')
         )
 
-        # Fill missing dates with zeros
-        date_map = {row['date']: row for row in daily}
-        result = []
-        current = start
-        while current <= end:
-            row = date_map.get(current, {})
-            result.append({
-                'date': str(current),
-                'visitors': row.get('unique_visitors', 0),
-                'page_views': row.get('total_page_views', 0),
-                'sessions': row.get('total_sessions', 0),
-            })
-            current += timedelta(days=1)
+        if daily:
+            # Use pre-aggregated data
+            date_map = {row['date']: row for row in daily}
+            result = []
+            current = start
+            while current <= end:
+                row = date_map.get(current, {})
+                result.append({
+                    'date': str(current),
+                    'visitors': row.get('unique_visitors', 0),
+                    'page_views': row.get('total_page_views', 0),
+                    'sessions': row.get('total_sessions', 0),
+                })
+                current += timedelta(days=1)
+        else:
+            # Fallback: query live data directly from PageView + Session tables
+            from django.db.models.functions import TruncDate
+
+            page_views_by_date = (
+                PageView.objects
+                .filter(website=website, viewed_at__date__range=(start, end))
+                .annotate(day=TruncDate('viewed_at'))
+                .values('day')
+                .annotate(
+                    page_views=Count('id'),
+                    unique_visitors=Count('visitor', distinct=True),
+                )
+            )
+            pv_map = {row['day']: row for row in page_views_by_date}
+
+            sessions_by_date = (
+                Session.objects
+                .filter(website=website, started_at__date__range=(start, end))
+                .annotate(day=TruncDate('started_at'))
+                .values('day')
+                .annotate(sessions=Count('id'))
+            )
+            sess_map = {row['day']: row['sessions'] for row in sessions_by_date}
+
+            result = []
+            current = start
+            while current <= end:
+                pv = pv_map.get(current, {})
+                result.append({
+                    'date': str(current),
+                    'visitors': pv.get('unique_visitors', 0),
+                    'page_views': pv.get('page_views', 0),
+                    'sessions': sess_map.get(current, 0),
+                })
+                current += timedelta(days=1)
 
         return Response({'data': result})
 
