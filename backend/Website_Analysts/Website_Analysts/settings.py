@@ -88,15 +88,16 @@ WSGI_APPLICATION = 'Website_Analysts.wsgi.application'
 # ─── Database ─────────────────────────────────────────────────────────────────
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
-if DATABASE_URL:
-    DATABASES = {'default': dj_database_url.config(default=DATABASE_URL, conn_max_age=60)}
-else:
+if os.environ.get('DB_ENGINE', 'sqlite').lower() != 'postgres':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': os.environ.get('SQLITE_PATH') or BASE_DIR / 'db.sqlite3',
         }
     }
+else:
+    import dj_database_url
+    DATABASES = {'default': dj_database_url.config(default=os.environ.get('DATABASE_URL'), conn_max_age=60)}
 
 # ─── REST Framework ───────────────────────────────────────────────────────────
 
