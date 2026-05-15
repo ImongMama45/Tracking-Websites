@@ -13,8 +13,13 @@ export const useAuthStore = create(
         set({ user: data.user, access: data.access, refresh: data.refresh });
       },
       register: async (payload) => {
-        const { data } = await api.post("/auth/register/", payload);
-        set({ user: data.user, access: data.access, refresh: data.refresh });
+        try {
+          const { data } = await api.post("/auth/register/", payload);
+          set({ user: data.user, access: data.access, refresh: data.refresh });
+        } catch (e) {
+          console.error("Register error detail:", e.response?.data || e.message);
+          throw e;
+        }
       },
       loadProfile: async () => {
         if (!get().access) return;

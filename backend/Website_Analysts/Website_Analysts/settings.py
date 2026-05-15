@@ -18,6 +18,8 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-in-production-
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # ─── Application Definition ──────────────────────────────────────────────────
 
@@ -96,10 +98,11 @@ WSGI_APPLICATION = 'Website_Analysts.wsgi.application'
 # ─── Database ─────────────────────────────────────────────────────────────────
 
 if os.environ.get('DB_ENGINE', 'sqlite').lower() != 'postgres':
+    sqlite_path = os.environ.get('SQLITE_PATH')
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'NAME': sqlite_path or BASE_DIR / 'db.sqlite3',
         }
     }
 else:
@@ -225,14 +228,18 @@ SIMPLE_JWT = {
 }
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
-CORS_ALLOWED_ORIGINS = [
-    "https://tracking-websites.vercel.app",
-    "https://tracking-websites-qes9g2z08-imongmama45s-projects.vercel.app",
-]
+CORS_ALLOWED_ORIGINS = os.environ.get(
+    'CORS_ORIGINS',
+    'http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174'
+).split(',')
 
+CSRF_TRUSTED_ORIGINS = (
+    os.environ.get('CSRF_TRUSTED_ORIGINS', '')
+    .split(',')
+    if os.environ.get('CSRF_TRUSTED_ORIGINS')
+    else []
+)
 
-
-CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only in development
 CORS_ALLOW_CREDENTIALS = True  # ONLY if using cookies/session
 

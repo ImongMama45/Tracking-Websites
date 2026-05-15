@@ -1,9 +1,9 @@
 import axios from "axios";
 
+const baseURL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+
 export const api = axios.create({
-  baseURL:
-    import.meta.env.VITE_API_BASE_URL ||
-    "https://tracking-websites.onrender.com/api/v1",
+  baseURL,
   timeout: 20000,
 });
 

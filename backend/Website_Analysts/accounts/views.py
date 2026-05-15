@@ -25,6 +25,9 @@ class RegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         refresh = RefreshToken.for_user(user)
+        if not serializer.is_valid():
+            print("REGISTER ERRORS:", serializer.errors)  # <-- add this
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response({
             'user': UserProfileSerializer(user).data,
             'refresh': str(refresh),
