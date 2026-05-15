@@ -4,6 +4,7 @@ Analytics Platform - Django Settings
 """
 
 import os
+import dj_database_url
 from datetime import timedelta
 from pathlib import Path
 
@@ -86,24 +87,14 @@ WSGI_APPLICATION = 'Website_Analysts.wsgi.application'
 
 # ─── Database ─────────────────────────────────────────────────────────────────
 
-if os.environ.get('DB_ENGINE', 'sqlite').lower() != 'postgres':
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL:
+    DATABASES = {'default': dj_database_url.config(default=DATABASE_URL, conn_max_age=60)}
+else:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': os.environ.get('SQLITE_PATH') or BASE_DIR / 'db.sqlite3',
-        }
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('DB_NAME', 'analytics_db'),
-            'USER': os.environ.get('DB_USER', 'analytics_user'),
-            'PASSWORD': os.environ.get('DB_PASSWORD', 'analytics_password'),
-            'HOST': os.environ.get('DB_HOST', 'localhost'),
-            'PORT': os.environ.get('DB_PORT', '5432'),
-            'OPTIONS': {'connect_timeout': 10},
-            'CONN_MAX_AGE': 60,
         }
     }
 
