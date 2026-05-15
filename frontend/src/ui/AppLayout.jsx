@@ -1,8 +1,9 @@
 import {
   Activity, Bell, BookOpen, Globe2, LayoutDashboard, LogOut, Map, MonitorSmartphone,
-  MousePointerClick, RadioTower, Settings, Share2, Users, Workflow
+  Menu, MousePointerClick, RadioTower, Settings, Share2, Users, Workflow, X
 } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
+import { useState } from "react";
 import { useAuthStore } from "../state/authStore.js";
 
 const nav = [
@@ -22,6 +23,7 @@ const nav = [
 
 export default function AppLayout() {
   const { user, logout } = useAuthStore();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-mist text-ink dark:bg-slate-950 dark:text-white">
@@ -56,15 +58,47 @@ export default function AppLayout() {
       <div className="lg:pl-72">
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
-            <div>
-              <p className="text-sm text-slate-500">Workspace</p>
-              <h2 className="text-lg font-semibold">{user?.company || user?.email || "Analytics"}</h2>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800 lg:hidden"
+                aria-label="Open navigation menu"
+              >
+                {menuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+              <div>
+                <p className="text-sm text-slate-500">Workspace</p>
+                <h2 className="text-lg font-semibold">{user?.company || user?.email || "Analytics"}</h2>
+              </div>
             </div>
             <button onClick={logout} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
               <LogOut size={16} />
               Sign out
             </button>
           </div>
+          {menuOpen && (
+            <nav className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-800 dark:bg-slate-900 lg:hidden">
+              <div className="space-y-1">
+                {nav.map(([href, Icon, label]) => (
+                  <NavLink
+                    key={href}
+                    to={href}
+                    end={href === "/"}
+                    onClick={() => setMenuOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                        isActive ? "bg-slate-900 text-white dark:bg-white dark:text-slate-950" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                      }`
+                    }
+                  >
+                    <Icon size={18} />
+                    {label}
+                  </NavLink>
+                ))}
+              </div>
+            </nav>
+          )}
         </header>
         <main className="mx-auto max-w-7xl px-4 py-6">
           <Outlet />
