@@ -7,6 +7,7 @@ import {
   Home, Search, Share2, ExternalLink,
   Smartphone, Monitor, Tablet,
   Globe2, ChevronDown,
+  Workflow, Clock, TrendingUp, TrendingDown,
 } from "lucide-react";
 import { api } from "../lib/api.js";
 import { useDashboardStore } from "../state/dashboardStore.js";
@@ -25,8 +26,8 @@ const EVENT_TYPES = ["all", "click", "form_submit", "scroll", "custom", "pagevie
 
 // ─── Source config ────────────────────────────────────────────────────────────
 const SOURCE_CONFIG = {
-  direct:   { icon: Home,         label: "Direct",   color: "text-blue-500",   bg: "bg-blue-50 dark:bg-blue-950/40",   border: "border-blue-200 dark:border-blue-900" },
-  search:   { icon: Search,       label: "Search",   color: "text-green-500",  bg: "bg-green-50 dark:bg-green-950/40", border: "border-green-200 dark:border-green-900" },
+  direct:   { icon: Home,         label: "Direct",   color: "text-blue-500",   bg: "bg-blue-50 dark:bg-blue-950/40",     border: "border-blue-200 dark:border-blue-900" },
+  search:   { icon: Search,       label: "Search",   color: "text-green-500",  bg: "bg-green-50 dark:bg-green-950/40",   border: "border-green-200 dark:border-green-900" },
   social:   { icon: Share2,       label: "Social",   color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950/40", border: "border-purple-200 dark:border-purple-900" },
   referral: { icon: ExternalLink, label: "Referral", color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950/40", border: "border-orange-200 dark:border-orange-900" },
 };
@@ -43,6 +44,13 @@ const stripDomain = (url) => {
 const fmtTime = (str) => {
   if (!str) return "—";
   return new Date(str).toLocaleString();
+};
+
+const fmtDuration = (sec) => {
+  if (!sec) return "0s";
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
 };
 
 const PAGE_SIZE = 25;
@@ -64,7 +72,6 @@ function EmptyRow({ colSpan, message = "No data yet" }) {
   );
 }
 
-// Percentage bar used in devices section
 function PillBar({ label, count, total, icon: Icon }) {
   const pct = total ? Math.round((count / total) * 100) : 0;
   return (
@@ -85,10 +92,51 @@ function PillBar({ label, count, total, icon: Icon }) {
   );
 }
 
-// ─── BUG 2: Visitors ──────────────────────────────────────────────────────────
+// Shared bar-table used by Sessions entry/exit pages
+function PagesTable({ title, icon: Icon, rows, keyField }) {
+  const max = Math.max(1, ...rows.map(r => r.count));
+  return (
+    <Card className="overflow-hidden">
+      <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-3 dark:border-slate-800">
+        <Icon size={16} className="text-slate-400" />
+        <h2 className="font-semibold">{title}</h2>
+      </div>
+      <table className="w-full text-left text-sm">
+        <thead className="bg-slate-50 text-slate-500 dark:bg-slate-800">
+          <tr>
+            <th className="px-4 py-3">Page</th>
+            <th className="px-4 py-3">Sessions</th>
+            <th className="px-4 py-3 w-32">Share</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 ? (
+            <EmptyRow colSpan={3} />
+          ) : rows.map((r) => {
+            const pct = Math.round((r.count / max) * 100);
+            return (
+              <tr key={r[keyField]} className="border-t border-slate-100 dark:border-slate-800">
+                <td className="px-4 py-3 font-mono text-xs">{r[keyField] || "/"}</td>
+                <td className="px-4 py-3 tabular-nums">{r.count.toLocaleString()}</td>
+                <td className="px-4 py-3">
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                    <div className="h-full rounded-full bg-blue-500" style={{ width: `${pct}%` }} />
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </Card>
+  );
+}
+
+
+// ─── Visitors ─────────────────────────────────────────────────────────────────
 function VisitorsView({ websiteId }) {
-  const [rows, setRows]     = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [rows, setRows]         = useState([]);
+  const [loading, setLoading]   = useState(true);
 
   useEffect(() => {
     setLoading(true);
@@ -111,12 +159,11 @@ function VisitorsView({ websiteId }) {
         <p className="text-sm text-slate-500">30-day visitor breakdown.</p>
       </div>
 
-      {/* KPI summary */}
       <div className="grid gap-4 sm:grid-cols-3">
         {[
-          { label: "Total Visitors",  value: totals.visitors },
+          { label: "Total Visitors",   value: totals.visitors },
           { label: "Total Page Views", value: totals.page_views },
-          { label: "Total Sessions",  value: totals.sessions },
+          { label: "Total Sessions",   value: totals.sessions },
         ].map(({ label, value }) => (
           <Card key={label} className="p-5">
             <p className="text-sm text-slate-500">{label}</p>
@@ -127,7 +174,6 @@ function VisitorsView({ websiteId }) {
         ))}
       </div>
 
-      {/* Line chart */}
       <Card className="p-5">
         <h2 className="mb-4 font-semibold">Visitor Trend</h2>
         <div className="h-72">
@@ -150,7 +196,6 @@ function VisitorsView({ websiteId }) {
         </div>
       </Card>
 
-      {/* Table */}
       <Card className="overflow-hidden">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-slate-500 dark:bg-slate-800">
@@ -180,12 +225,13 @@ function VisitorsView({ websiteId }) {
   );
 }
 
-// ─── BUG 5: Events ────────────────────────────────────────────────────────────
+
+// ─── Events ───────────────────────────────────────────────────────────────────
 function EventsView({ websiteId }) {
-  const [allRows, setAllRows]   = useState([]);
-  const [filter, setFilter]     = useState("all");
-  const [page, setPage]         = useState(1);
-  const [loading, setLoading]   = useState(true);
+  const [allRows, setAllRows] = useState([]);
+  const [filter, setFilter]   = useState("all");
+  const [page, setPage]       = useState(1);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
@@ -217,7 +263,6 @@ function EventsView({ websiteId }) {
         <p className="text-sm text-slate-500">Full event history, sorted newest first.</p>
       </div>
 
-      {/* Filter pills */}
       <div className="flex flex-wrap gap-2">
         {EVENT_TYPES.map(t => {
           const Icon = EVENT_ICONS[t];
@@ -238,7 +283,6 @@ function EventsView({ websiteId }) {
         })}
       </div>
 
-      {/* Table */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -276,7 +320,6 @@ function EventsView({ websiteId }) {
         </div>
       </Card>
 
-      {/* Load more */}
       {visible.length < filtered.length && (
         <div className="text-center">
           <button
@@ -292,7 +335,8 @@ function EventsView({ websiteId }) {
   );
 }
 
-// ─── BUG 6: Sources ───────────────────────────────────────────────────────────
+
+// ─── Sources ──────────────────────────────────────────────────────────────────
 function SourcesView({ websiteId }) {
   const [sources, setSources]     = useState([]);
   const [referrers, setReferrers] = useState([]);
@@ -302,15 +346,15 @@ function SourcesView({ websiteId }) {
     setLoading(true);
     api.get(`/analytics/${websiteId}/sources/`)
       .then(({ data }) => {
-        setSources(data.sources   || []);
+        setSources(data.sources     || []);
         setReferrers(data.referrers || []);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [websiteId]);
 
-  const total  = useMemo(() => sources.reduce((s, r) => s + (r.sessions || 0), 0), [sources]);
-  const byType = useMemo(() => Object.fromEntries(sources.map(s => [s.entry_type, s.sessions || 0])), [sources]);
+  const total    = useMemo(() => sources.reduce((s, r) => s + (r.sessions || 0), 0), [sources]);
+  const byType   = useMemo(() => Object.fromEntries(sources.map(s => [s.entry_type, s.sessions || 0])), [sources]);
   const refTotal = useMemo(() => referrers.reduce((s, r) => s + (r.sessions || 0), 0), [referrers]);
 
   return (
@@ -320,7 +364,6 @@ function SourcesView({ websiteId }) {
         <p className="text-sm text-slate-500">Where your visitors come from.</p>
       </div>
 
-      {/* Source cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {Object.entries(SOURCE_CONFIG).map(([key, cfg]) => {
           const Icon  = cfg.icon;
@@ -343,7 +386,6 @@ function SourcesView({ websiteId }) {
         })}
       </div>
 
-      {/* Referrers */}
       <Card className="overflow-hidden">
         <div className="border-b border-slate-100 px-5 py-3 dark:border-slate-800">
           <h2 className="font-semibold">Top Referrer Domains</h2>
@@ -385,9 +427,10 @@ function SourcesView({ websiteId }) {
   );
 }
 
-// ─── BUG 7: Geography ─────────────────────────────────────────────────────────
+
+// ─── Geography ────────────────────────────────────────────────────────────────
 const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
-   const NUMERIC_TO_ALPHA2 = {
+const NUMERIC_TO_ALPHA2 = {
   "004":"AF","008":"AL","012":"DZ","024":"AO","032":"AR","036":"AU","040":"AT",
   "050":"BD","056":"BE","068":"BO","076":"BR","100":"BG","116":"KH","120":"CM",
   "124":"CA","144":"LK","152":"CL","156":"CN","170":"CO","180":"CD","188":"CR",
@@ -403,7 +446,7 @@ const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json"
   "686":"SN","694":"SL","706":"SO","710":"ZA","724":"ES","729":"SD","752":"SE",
   "756":"CH","760":"SY","764":"TH","788":"TN","792":"TR","800":"UG","804":"UA",
   "784":"AE","826":"GB","840":"US","858":"UY","862":"VE","704":"VN","887":"YE",
-  "894":"ZM","716":"ZW","pace":"PS"
+  "894":"ZM","716":"ZW","pace":"PS",
 };
 
 function GeographyView({ websiteId }) {
@@ -424,7 +467,6 @@ function GeographyView({ websiteId }) {
     [countries]
   );
 
-  // Build lookup: alpha-2 country_code → sessions
   const countryMap = useMemo(() => {
     const m = {};
     for (const c of countries) {
@@ -441,11 +483,8 @@ function GeographyView({ websiteId }) {
   const getColor = (alpha2) => {
     const val = countryMap[alpha2] || 0;
     if (!val) return "#e2e8f0";
-    const intensity = Math.round(50 + (val / maxSessions) * 205);
-    // interpolate from light blue to dark blue
-    const h = 217, s = 91;
     const l = Math.round(90 - (val / maxSessions) * 55);
-    return `hsl(${h},${s}%,${l}%)`;
+    return `hsl(217,91%,${l}%)`;
   };
 
   const sorted = useMemo(
@@ -460,7 +499,6 @@ function GeographyView({ websiteId }) {
         <p className="text-sm text-slate-500">Country-level visitor distribution.</p>
       </div>
 
-      {/* Summary cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="p-5">
           <p className="text-sm text-slate-500">Total Sessions</p>
@@ -482,7 +520,6 @@ function GeographyView({ websiteId }) {
         </Card>
       </div>
 
-      {/* World map */}
       <Card className="overflow-hidden p-4">
         <h2 className="mb-2 font-semibold">Visitor Map</h2>
         <div className="relative">
@@ -495,9 +532,7 @@ function GeographyView({ websiteId }) {
             <Geographies geography={GEO_URL}>
               {({ geographies }) =>
                 geographies.map((geo) => {
-                  const numericId = geo.id;
-                  const alpha2 = NUMERIC_TO_ALPHA2[String(numericId)] || "";
-                  const sessions = countryMap[alpha2] || 0;
+                  const alpha2 = NUMERIC_TO_ALPHA2[String(geo.id)] || "";
                   return (
                     <Geography
                       key={geo.rsmKey}
@@ -510,10 +545,9 @@ function GeographyView({ websiteId }) {
                         hover:   { outline: "none", fill: "#f59e0b", cursor: "pointer" },
                         pressed: { outline: "none" },
                       }}
-                      onMouseEnter={() => {
-                        const name = geo.properties.name || alpha2 || "Unknown";
-                        setTooltip({ name, sessions });
-                      }}
+                      onMouseEnter={() =>
+                        setTooltip({ name: geo.properties.name || alpha2 || "Unknown", sessions: countryMap[alpha2] || 0 })
+                      }
                       onMouseLeave={() => setTooltip(null)}
                     />
                   );
@@ -522,7 +556,6 @@ function GeographyView({ websiteId }) {
             </Geographies>
           </ComposableMap>
 
-          {/* Tooltip */}
           {tooltip && (
             <div className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-lg dark:border-slate-700 dark:bg-slate-800">
               <span className="font-semibold">{tooltip.name}</span>
@@ -532,7 +565,6 @@ function GeographyView({ websiteId }) {
           )}
         </div>
 
-        {/* Legend */}
         <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
           <span>Fewer</span>
           <div className="h-2 w-32 rounded-full"
@@ -541,7 +573,6 @@ function GeographyView({ websiteId }) {
         </div>
       </Card>
 
-      {/* Table */}
       <Card className="overflow-hidden">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-slate-500 dark:bg-slate-800">
@@ -582,7 +613,8 @@ function GeographyView({ websiteId }) {
   );
 }
 
-// ─── BUG 8 (frontend): Devices ────────────────────────────────────────────────
+
+// ─── Devices ──────────────────────────────────────────────────────────────────
 function DevicesView({ websiteId }) {
   const [data, setData]       = useState({ device_types: [], browsers: [], os: [] });
   const [loading, setLoading] = useState(true);
@@ -643,6 +675,120 @@ function DevicesView({ websiteId }) {
   );
 }
 
+
+// ─── Sessions ─────────────────────────────────────────────────────────────────
+function SessionsView({ websiteId }) {
+  const period = useDashboardStore(s => s.period);
+
+  const [summary,    setSummary]    = useState(null);
+  const [entryPages, setEntryPages] = useState([]);
+  const [exitPages,  setExitPages]  = useState([]);
+  const [sessions,   setSessions]   = useState([]);
+  const [loading,    setLoading]    = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    api.get(`/analytics/${websiteId}/sessions/?period=${period}`)
+      .then(({ data }) => {
+        setSummary(data.summary        || null);
+        setEntryPages(data.entry_pages || []);
+        setExitPages(data.exit_pages   || []);
+        setSessions(data.sessions      || []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [websiteId, period]);
+
+  const kpis = [
+    { label: "Total Sessions",  value: summary?.total_sessions?.toLocaleString() ?? "—", icon: Workflow },
+    { label: "Bounce Rate",     value: summary ? `${summary.bounce_rate}%` : "—",         icon: MousePointerClick },
+    { label: "Avg Duration",    value: summary ? fmtDuration(summary.avg_duration) : "—", icon: Clock },
+    { label: "Pages / Session", value: summary?.avg_pages ?? "—",                         icon: FileText },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Sessions</h1>
+        <p className="text-sm text-slate-500">Session-level behaviour for the selected period.</p>
+      </div>
+
+      {/* KPI cards */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {kpis.map(({ label, value, icon: Icon }) => (
+          <Card key={label} className="p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-slate-500">{label}</p>
+              <Icon size={18} className="text-slate-300" />
+            </div>
+            <p className="mt-3 text-3xl font-semibold tabular-nums">
+              {loading ? "—" : value}
+            </p>
+          </Card>
+        ))}
+      </div>
+
+      {/* Entry / Exit pages */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <PagesTable title="Top Entry Pages" icon={TrendingUp}   rows={entryPages} keyField="entry_page" />
+        <PagesTable title="Top Exit Pages"  icon={TrendingDown} rows={exitPages}  keyField="exit_page"  />
+      </div>
+
+      {/* Recent sessions table */}
+      <Card className="overflow-hidden">
+        <div className="border-b border-slate-100 px-5 py-3 dark:border-slate-800">
+          <h2 className="font-semibold">Recent Sessions</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-slate-50 text-slate-500 dark:bg-slate-800">
+              <tr>
+                <th className="px-4 py-3 whitespace-nowrap">Started</th>
+                <th className="px-4 py-3">Duration</th>
+                <th className="px-4 py-3">Pages</th>
+                <th className="px-4 py-3">Bounce</th>
+                <th className="px-4 py-3">Source</th>
+                <th className="px-4 py-3">Country</th>
+                <th className="px-4 py-3">Device</th>
+                <th className="px-4 py-3">Browser</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <EmptyRow colSpan={8} message="Loading…" />
+              ) : sessions.length === 0 ? (
+                <EmptyRow colSpan={8} />
+              ) : sessions.map((s) => (
+                <tr key={s.id} className="border-t border-slate-100 dark:border-slate-800">
+                  <td className="px-4 py-3 whitespace-nowrap text-slate-400 text-xs">
+                    {new Date(s.started_at).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3 tabular-nums">{fmtDuration(s.duration_seconds)}</td>
+                  <td className="px-4 py-3 tabular-nums">{s.page_count}</td>
+                  <td className="px-4 py-3">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      s.is_bounce
+                        ? "bg-red-50 text-red-600 dark:bg-red-950/40"
+                        : "bg-green-50 text-green-600 dark:bg-green-950/40"
+                    }`}>
+                      {s.is_bounce ? "Yes" : "No"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 capitalize text-slate-500">{s.entry_type || "—"}</td>
+                  <td className="px-4 py-3">{s.visitor__country_name || "—"}</td>
+                  <td className="px-4 py-3 capitalize">{s.visitor__device_type || "—"}</td>
+                  <td className="px-4 py-3">{s.visitor__browser || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+
 // ─── Root export ──────────────────────────────────────────────────────────────
 export default function AnalyticsPage({ type }) {
   const selectedWebsite = useDashboardStore(s => s.selectedWebsite);
@@ -667,6 +813,7 @@ export default function AnalyticsPage({ type }) {
     case "sources":   return <SourcesView   websiteId={id} />;
     case "geography": return <GeographyView websiteId={id} />;
     case "devices":   return <DevicesView   websiteId={id} />;
+    case "sessions":  return <SessionsView  websiteId={id} />;
     default: return <p className="text-slate-400">Unknown analytics type: {type}</p>;
   }
 }

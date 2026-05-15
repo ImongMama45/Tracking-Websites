@@ -45,6 +45,7 @@ const routes = [
       { path: "realtime", element: <DashboardPage mode="realtime" /> },
       { path: "visitors", element: <AnalyticsPage type="visitors" /> },
       { path: "events", element: <AnalyticsPage type="events" /> },
+      { path: "sessions", element: <AnalyticsPage type="sessions" /> },
       { path: "sources", element: <AnalyticsPage type="sources" /> },
       { path: "geography", element: <AnalyticsPage type="geography" /> },
       { path: "devices", element: <AnalyticsPage type="devices" /> },
@@ -52,7 +53,6 @@ const routes = [
       { path: "notifications", element: <NotificationsPage /> },
       { path: "guide", element: <GuidePage /> },
       { path: "settings", element: <SettingsPage /> },
-      { path: "sessions", element: <SessionsPage /> }
     ]
   }
 ];
