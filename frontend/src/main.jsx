@@ -15,7 +15,6 @@ import SettingsPage from "./pages/SettingsPage.jsx";
 import GuidePage from "./pages/GuidePage.jsx";
 import { useAuthStore } from "./state/authStore.js";
 import "./styles.css";
-import SessionsPage from "./pages/SessionPage.jsx";
 
 function Protected({ children }) {
   const access = useAuthStore((state) => state.access);
