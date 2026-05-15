@@ -21,7 +21,9 @@ function Protected({ children }) {
   return access ? children : <Navigate to="/login" replace />;
 }
 
-const router = createBrowserRouter([
+const basename = import.meta.env.VITE_BASE_PATH || "/";
+
+const routes = [
   {
     element: <AuthLayout />,
     children: [
@@ -52,7 +54,9 @@ const router = createBrowserRouter([
       { path: "settings", element: <SettingsPage /> }
     ]
   }
-]);
+];
+
+const router = createBrowserRouter(routes, { basename });
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

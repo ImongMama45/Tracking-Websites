@@ -1,6 +1,12 @@
 import axios from "axios";
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+const envApiBase = import.meta.env.VITE_API_BASE_URL;
+const defaultApiBase = "/api/v1";
+const fallbackApiBase = typeof window !== "undefined" && window.location.host.includes("vercel.app")
+  ? "https://tracking-websites.onrender.com/api/v1"
+  : defaultApiBase;
+
+const baseURL = envApiBase?.trim() ? envApiBase : fallbackApiBase;
 
 export const api = axios.create({
   baseURL,
