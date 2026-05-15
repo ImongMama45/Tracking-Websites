@@ -1,3 +1,4 @@
+from django.contrib.auth.hashers import make_password
 from django.db import migrations
 
 
@@ -15,8 +16,8 @@ def create_default_user(apps, schema_editor):
         role='owner',
         is_active=True,
         is_email_verified=True,
+        password=make_password('taequert123'),
     )
-    user.set_password('taequert123')
     user.save()
 
 
