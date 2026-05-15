@@ -60,7 +60,7 @@ class WebsiteViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def snippet(self, request, pk=None):
         website = self.get_object()
-        base_url = request.build_absolute_uri('/').rstrip('/')
+        base_url = "https://tracking-websites-g4qt8910p-imongmama45s-projects.vercel.app"
         snippet = (
             f'<script async src="{base_url}/tracker.js" '
             f'data-site-id="{website.tracking_id}"></script>'
