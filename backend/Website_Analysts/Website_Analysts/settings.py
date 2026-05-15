@@ -4,7 +4,6 @@ Analytics Platform - Django Settings
 """
 
 import os
-import dj_database_url
 from datetime import timedelta
 from pathlib import Path
 
@@ -87,7 +86,6 @@ WSGI_APPLICATION = 'Website_Analysts.wsgi.application'
 
 # ─── Database ─────────────────────────────────────────────────────────────────
 
-DATABASE_URL = os.environ.get('DATABASE_URL')
 if os.environ.get('DB_ENGINE', 'sqlite').lower() != 'postgres':
     DATABASES = {
         'default': {
